@@ -399,7 +399,7 @@ module Pod
         end.should.raise Podfile::StandardError
       end
 
-      it 'it can use use the dependencies of a podspec' do
+      it 'can use use the dependencies of a podspec' do
         banalib_path = fixture('BananaLib.podspec').to_s
         podfile = Podfile.new(fixture('Podfile')) do
           platform :ios
@@ -408,7 +408,7 @@ module Pod
         podfile.dependencies.map(&:name).should == %w(monkey AFNetworking SDWebImage)
       end
 
-      it 'it can use use the dependencies of a podspec\'s subspec' do
+      it 'can use use the dependencies of a podspec\'s subspec' do
         banalib_path = fixture('BananaLib.podspec').to_s
         podfile = Podfile.new(fixture('Podfile')) do
           platform :ios

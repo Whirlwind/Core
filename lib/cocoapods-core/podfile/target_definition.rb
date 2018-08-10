@@ -668,6 +668,17 @@ module Pod
           raise StandardError, 'Unrecognized options for the podspec ' \
             "method `#{options}`"
         end
+        if subspec_name = options[:subspec]
+          unless subspec_name.is_a?(String)
+            raise StandardError, "Option `:subspec => #{subspec_name.inspect}` should be a String"
+          end
+        end
+        if subspec_names = options[:subspecs]
+          if !subspec_names.is_a?(Array) || !subspec_names.all?(String)
+            raise StandardError, "Option `:subspecs => #{subspec_names.inspect}` " \
+            'should be an Array of Strings'
+          end
+        end
         options[:autodetect] = true if !options.include?(:name) && !options.include?(:path)
         get_hash_value('podspecs', []) << options
       end

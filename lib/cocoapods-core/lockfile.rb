@@ -290,12 +290,12 @@ module Pod
       result = {}
       [:added, :changed, :removed, :unchanged].each { |k| result[k] = [] }
 
-      installed_versions = pod_versions.blank? ? {} : pod_versions.map { |name, version| {
-        Specification.root_name(name) => version }
-      }.reduce(:merge)
-      installed_external_sources = external_sources_data.blank? ? {} : external_sources_data.map { |name, hash|
+      installed_versions = pod_versions.blank? ? {} : pod_versions.map do |name, version|
+        { Specification.root_name(name) => version }
+      end.reduce(:merge)
+      installed_external_sources = external_sources_data.blank? ? {} : external_sources_data.map do |name, hash|
         { Specification.root_name(name) => hash }
-      }.reduce(:merge)
+      end.reduce(:merge)
 
       podfile_dependencies = podfile.dependencies
       podfile_dependencies_by_name = podfile_dependencies.group_by(&:root_name)
@@ -306,7 +306,7 @@ module Pod
         key = if podfile_deps.blank?
                 :removed
               else
-                podfile_dep_with_external_source = podfile_deps.select(&:external_source).first
+                podfile_dep_with_external_source = podfile_deps.find(&:external_source)
                 unless podfile_dep_with_external_source.blank?
                   podfile_external_source = podfile_dep_with_external_source.external_source
                 end
@@ -319,9 +319,9 @@ module Pod
                   installed_version = installed_versions[name]
                   if installed_version.blank?
                     :added
-                  elsif podfile_deps.find { |dependency|
+                  elsif podfile_deps.find do |dependency|
                     !dependency.requirement.none? && !dependency.requirement.satisfied_by?(installed_version)
-                  }
+                  end
                     :changed
                   else
                     :unchanged

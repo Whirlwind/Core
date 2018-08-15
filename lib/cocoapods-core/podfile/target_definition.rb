@@ -674,7 +674,7 @@ module Pod
           end
         end
         if subspec_names = options[:subspecs]
-          if !subspec_names.is_a?(Array) || !subspec_names.all?(String)
+          if !subspec_names.is_a?(Array) || !subspec_names.all? { |name| name.is_a? String }
             raise StandardError, "Option `:subspecs => #{subspec_names.inspect}` " \
             'should be an Array of Strings'
           end

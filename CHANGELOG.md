@@ -10,6 +10,17 @@
 
 ##### Bug Fixes
 
+* None.  
+
+
+## 1.6.0.beta.1 (2018-08-16)
+
+##### Enhancements
+
+* None.  
+
+##### Bug Fixes
+
 * Cache result of `Specification#checksum` and `Podfile#checksum` methods  
   [Dimitris Koutsogiorgas](https://github.com/dnkoutso)
   [CocoaPods#7854](https://github.com/CocoaPods/CocoaPods/issues/7854)

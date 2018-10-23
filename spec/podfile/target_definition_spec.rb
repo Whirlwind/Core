@@ -572,6 +572,17 @@ module Pod
         ]
       end
 
+      it 'raises if the provided podspec option type is error' do
+        e = lambda { @parent.store_podspec(:subspec => 123) }.should.raise Podfile::StandardError
+        e.message.should.match /should be a String/
+
+        e = lambda { @parent.store_podspec(:subspecs => 123) }.should.raise Podfile::StandardError
+        e.message.should.match /should be an Array of Strings/
+
+        e = lambda { @parent.store_podspec(:subspecs => ['a', 123]) }.should.raise Podfile::StandardError
+        e.message.should.match /should be an Array of Strings/
+      end
+
       it 'raises if the provided podspec options are unsupported' do
         e = lambda { @parent.store_podspec(:invent => 'BlocksKit') }.should.raise Podfile::StandardError
         e.message.should.match /Unrecognized options/

@@ -586,7 +586,7 @@ module Pod
         name = :osx if name == :macos
         unless [:ios, :osx, :tvos, :watchos].include?(name)
           raise StandardError, "Unsupported platform `#{name}`. Platform " \
-            'must be `:ios`, `:osx`, `:tvos`, or `:watchos`.'
+            'must be `:ios`, `:osx`, `:macos`, `:tvos`, or `:watchos`.'
         end
 
         if target
@@ -920,7 +920,7 @@ module Pod
           specs = if subspec_names.blank?
                     [spec]
                   else
-                    subspec_names = [subspec_names] unless subspec_names.is_a?(Array)
+                    subspec_names = [subspec_names] if subspec_names.is_a?(String)
                     subspec_names.map { |subspec_name| spec.subspec_by_name("#{spec.name}/#{subspec_name}") }
                   end
           specs.map do |subspec|

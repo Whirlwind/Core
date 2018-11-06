@@ -204,6 +204,20 @@ module Pod
         result.test_specs.first.test_type.should.equal :unit
       end
 
+      it 'can load app specification from hash' do
+        hash = {
+          'name' => 'BananaLib',
+          'version' => '1.0',
+          'subspecs' => [{ 'name' => 'GreenBanana', 'source_files' => 'GreenBanana' }],
+          'appspecs' => [{ 'name' => 'App' }],
+        }
+        result = Specification.from_hash(hash)
+        result.subspecs.count.should.equal 2
+        result.app_specs.count.should.equal 1
+        result.app_specs.first.name.should == 'BananaLib/App'
+        result.app_specs.first.app_specification?.should.be.true
+      end
+
       it 'can load script phases from hash' do
         hash = {
           'name' => 'BananaLib',
@@ -230,7 +244,10 @@ module Pod
         result = Specification.from_hash(hash)
         result.subspecs.count.should.equal 2
         result.test_specs.count.should.equal 1
+        result.non_library_specs.count.should.equal 1
+        result.app_specs.count.should.equal 0
         result.test_specs.first.test_specification?.should.be.true
+        result.test_specs.first.app_specification?.should.be.false
         result.test_specs.first.test_type.should.equal :unit
       end
 
@@ -238,16 +255,32 @@ module Pod
         json = '{"subspecs": [{"name": "Tests","test_type": "unit","source_files": "Tests/**/*.{h,m}"}]}'
         result = Specification.from_json(json)
         result.test_specs.count.should.equal 1
+        result.non_library_specs.count.should.equal 1
+        result.app_specs.count.should.equal 0
         result.test_specs.first.test_specification?.should.be.true
+        result.test_specs.first.app_specification?.should.be.false
         result.test_specs.first.test_type.should.equal :unit
       end
 
       it 'can load test specification from json' do
         json = '{"testspecs": [{"name": "Tests","test_type": "unit","source_files": "Tests/**/*.{h,m}"}]}'
         result = Specification.from_json(json)
+        result.non_library_specs.count.should.equal 1
         result.test_specs.count.should.equal 1
+        result.app_specs.count.should.equal 0
         result.test_specs.first.test_specification?.should.be.true
+        result.test_specs.first.app_specification?.should.be.false
         result.test_specs.first.test_type.should.equal :unit
+      end
+
+      it 'can load app specification from json' do
+        json = '{"appspecs": [{"name": "App","source_files": "App/**/*.{h,m}"}]}'
+        result = Specification.from_json(json)
+        result.app_specs.count.should.equal 1
+        result.test_specs.count.should.equal 0
+        result.non_library_specs.count.should.equal 1
+        result.app_specs.first.app_specification?.should.be.true
+        result.app_specs.first.test_specification?.should.be.false
       end
 
       it 'can load script phases from json' do
@@ -271,6 +304,61 @@ module Pod
       it 'can be safely converted back and forth to a hash' do
         result = Specification.from_hash(@spec.to_hash)
         result.should == @spec
+      end
+
+      describe 'Swift Version Support' do
+        it 'writes swift version in singular form' do
+          @spec.swift_version = '1.0'
+          hash = @spec.to_hash
+          hash['swift_versions'].should == '1.0'
+        end
+
+        it 'writes swift version pluralized' do
+          @spec.swift_versions = ['1.0']
+          hash = @spec.to_hash
+          hash['swift_versions'].should == ['1.0']
+        end
+
+        it 'reads swift version from a string' do
+          hash = {
+            'name' => 'BananaLib',
+            'version' => '1.0',
+            'swift_versions' => '3.2',
+          }
+          result = Specification.from_hash(hash)
+          result.swift_versions.map(&:to_s).should == ['3.2']
+        end
+
+        it 'reads swift version from an array' do
+          hash = {
+            'name' => 'BananaLib',
+            'version' => '1.0',
+            'swift_versions' => %w(3.2 4.0),
+          }
+          result = Specification.from_hash(hash)
+          result.swift_versions.map(&:to_s).should == %w(3.2 4.0)
+        end
+
+        it 'is backwards compatible with pre 1.7.0 swift version' do
+          hash = {
+            'name' => 'BananaLib',
+            'version' => '1.0',
+            'swift_version' => '3.2',
+          }
+          result = Specification.from_hash(hash)
+          result.swift_versions.map(&:to_s).should == %w(3.2)
+        end
+
+        it 'combines old and new swift version declarations' do
+          hash = {
+            'name' => 'BananaLib',
+            'version' => '1.0',
+            'swift_version' => '3.2',
+            'swift_versions' => %w(4.0 4.1),
+          }
+          result = Specification.from_hash(hash)
+          result.swift_versions.map(&:to_s).should == %w(3.2 4.0 4.1)
+        end
       end
     end
   end

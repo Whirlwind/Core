@@ -237,15 +237,43 @@ module Pod
         @parent.dependencies.map(&:name).sort.should == %w(RestKit RestKit/Tests)
       end
 
+      it 'allows depending on appspecs' do
+        @parent.store_pod('RestKit', :appspecs => %w(App))
+        @parent.dependencies.map(&:name).sort.should == %w(RestKit RestKit/App)
+      end
+
       it 'allows depending on both subspecs and testspecs' do
         @parent.store_pod('RestKit', :subspecs => %w(Networking))
         @parent.store_pod('RestKit', :testspecs => %w(Tests))
         @parent.dependencies.map(&:name).sort.should == %w(RestKit RestKit/Networking RestKit/Tests)
       end
 
+      it 'allows depending on both subspecs and appspecs' do
+        @parent.store_pod('RestKit', :subspecs => %w(Networking))
+        @parent.store_pod('RestKit', :appspecs => %w(App))
+        @parent.dependencies.map(&:name).sort.should == %w(RestKit RestKit/App RestKit/Networking)
+      end
+
+      it 'allows depending on subspecs, testspecs, and appspecs' do
+        @parent.store_pod('RestKit', :subspecs => %w(Networking))
+        @parent.store_pod('RestKit', :testspecs => %w(Tests))
+        @parent.store_pod('RestKit', :appspecs => %w(App))
+        @parent.dependencies.map(&:name).sort.should == %w(RestKit RestKit RestKit/App RestKit/Networking RestKit/Tests)
+      end
+
       it 'allows depending on both subspecs and testspecs in chaining' do
         @parent.store_pod('RestKit', :subspecs => %w(Networking), :testspecs => %w(Tests))
         @parent.dependencies.map(&:name).sort.should == %w(RestKit/Networking RestKit/Tests)
+      end
+
+      it 'allows depending on both subspecs and appspecs in chaining' do
+        @parent.store_pod('RestKit', :subspecs => %w(Networking), :appspecs => %w(App))
+        @parent.dependencies.map(&:name).sort.should == %w(RestKit/App RestKit/Networking)
+      end
+
+      it 'allows depending on subspecs, testspecs, and appspecs in chaining' do
+        @parent.store_pod('RestKit', :subspecs => %w(Networking), :testspecs => %w(Tests), :appspecs => %w(App))
+        @parent.dependencies.map(&:name).sort.should == %w(RestKit/App RestKit/Networking RestKit/Tests)
       end
 
       #--------------------------------------#
@@ -488,6 +516,27 @@ module Pod
         @parent.should.not.pod_whitelisted_for_configuration?('RestKit/Tests', 'Release')
       end
 
+      it 'whitelistes pod configurations with appspecs' do
+        @parent.build_configurations = { 'Debug' => :debug, 'Release' => :release }
+        @parent.store_pod('RestKit', :appspecs => %w(App), :configuration => 'Debug')
+        @parent.should.pod_whitelisted_for_configuration?('RestKit', 'Debug')
+        @parent.should.pod_whitelisted_for_configuration?('RestKit/App', 'Debug')
+        @parent.should.not.pod_whitelisted_for_configuration?('RestKit', 'Release')
+        @parent.should.not.pod_whitelisted_for_configuration?('RestKit/App', 'Release')
+      end
+
+      it 'whitelistes pod configurations with appspecs and testspecs' do
+        @parent.build_configurations = { 'Debug' => :debug, 'Release' => :release }
+        @parent.store_pod('RestKit', :testspecs => %w(Tests), :configuration => 'Debug')
+        @parent.store_pod('RestKit', :appspecs => %w(App), :configuration => 'Debug')
+        @parent.should.pod_whitelisted_for_configuration?('RestKit', 'Debug')
+        @parent.should.pod_whitelisted_for_configuration?('RestKit/App', 'Debug')
+        @parent.should.pod_whitelisted_for_configuration?('RestKit/Tests', 'Debug')
+        @parent.should.not.pod_whitelisted_for_configuration?('RestKit', 'Release')
+        @parent.should.not.pod_whitelisted_for_configuration?('RestKit/App', 'Release')
+        @parent.should.not.pod_whitelisted_for_configuration?('RestKit/Tests', 'Release')
+      end
+
       #--------------------------------------#
 
       it 'returns its platform' do
@@ -520,6 +569,83 @@ module Pod
       it 'allows you to set the swift_version' do
         @parent.swift_version = '2.3'
         @parent.swift_version.should == '2.3'
+      end
+
+      it 'stores a single swift version requirement' do
+        @parent.store_swift_version_requirements('3.0')
+        @parent.send(:get_hash_value, 'swift_version_requirements').should == [
+          '3.0',
+        ]
+      end
+
+      it 'stores swift version requirements as strings' do
+        @parent.store_swift_version_requirements('>= 3.0', '< 4.0')
+        @parent.send(:get_hash_value, 'swift_version_requirements').should == [
+          '>= 3.0',
+          '< 4.0',
+        ]
+      end
+
+      it 'stores swift version requirements as an array of strings' do
+        @parent.store_swift_version_requirements(['>= 3.0', '< 4.0'])
+        @parent.send(:get_hash_value, 'swift_version_requirements').should == [
+          '>= 3.0',
+          '< 4.0',
+        ]
+      end
+
+      it 'stores swift version requirements as versions' do
+        @parent.store_swift_version_requirements(Version.new('3.0'), Version.new('4.0'))
+        @parent.send(:get_hash_value, 'swift_version_requirements').should == [
+          '3.0',
+          '4.0',
+        ]
+      end
+
+      it 'correctly returns whether a version of Swift is supported based on requirements' do
+        @parent.store_swift_version_requirements('>= 3.0', '< 4.0')
+        @parent.supports_swift_version?(Version.new('1.0')).should.be.false
+        @parent.supports_swift_version?(Version.new('2.0')).should.be.false
+        @parent.supports_swift_version?(Version.new('3.0')).should.be.true
+        @parent.supports_swift_version?(Version.new('3.2')).should.be.true
+        @parent.supports_swift_version?(Version.new('4.0')).should.be.false
+      end
+
+      it 'correclty returns whether a version of Swift is supported based on Version requirements' do
+        @parent.store_swift_version_requirements(Version.new('3.0'))
+        @parent.supports_swift_version?(Version.new('1.0')).should.be.false
+        @parent.supports_swift_version?(Version.new('2.0')).should.be.false
+        @parent.supports_swift_version?(Version.new('3.0')).should.be.true
+        @parent.supports_swift_version?(Version.new('3.2')).should.be.false
+        @parent.supports_swift_version?(Version.new('4.0')).should.be.false
+      end
+
+      it 'delegates to the parent for Swift version support if current target does not specify requirements' do
+        @parent.store_swift_version_requirements('>= 3.0', '< 4.0')
+        @child.supports_swift_version?(Version.new('1.0')).should.be.false
+        @child.supports_swift_version?(Version.new('2.0')).should.be.false
+        @child.supports_swift_version?(Version.new('3.0')).should.be.true
+        @child.supports_swift_version?(Version.new('3.2')).should.be.true
+        @child.supports_swift_version?(Version.new('4.0')).should.be.false
+      end
+
+      it 'returns the Swift version supported of the current target definition if specified' do
+        @child.store_swift_version_requirements('>= 4.0')
+        @parent.store_swift_version_requirements('>= 3.0', '< 4.0')
+        @child.supports_swift_version?(Version.new('1.0')).should.be.false
+        @child.supports_swift_version?(Version.new('2.0')).should.be.false
+        @child.supports_swift_version?(Version.new('3.0')).should.be.false
+        @child.supports_swift_version?(Version.new('3.2')).should.be.false
+        @child.supports_swift_version?(Version.new('4.0')).should.be.true
+        @child.supports_swift_version?(Version.new('4.2')).should.be.true
+      end
+
+      it 'accepts all Swift versions if no requirements are specified' do
+        @parent.supports_swift_version?(Version.new('1.0')).should.be.true
+        @parent.supports_swift_version?(Version.new('2.0')).should.be.true
+        @parent.supports_swift_version?(Version.new('3.0')).should.be.true
+        @parent.supports_swift_version?(Version.new('3.2')).should.be.true
+        @parent.supports_swift_version?(Version.new('4.0')).should.be.true
       end
 
       #--------------------------------------#
